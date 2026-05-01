@@ -1,46 +1,163 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Mic, Square, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Mic, Square, Pause, Play, Trash2, Upload, Loader2 } from 'lucide-react';
+import { useAudioRecorder } from '@/hooks/use-audio-recorder';
+import { Visualizer } from '@/components/Visualizer';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function RecordPage() {
-  const [isRecording, setIsRecording] = useState(false);
+  const router = useRouter();
+  const {
+    status,
+    audioBlob,
+    audioUrl,
+    duration,
+    startRecording,
+    pauseRecording,
+    resumeRecording,
+    stopRecording,
+    resetRecording,
+    stream
+  } = useAudioRecorder();
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleUpload = async () => {
+    if (!audioBlob) return;
+
+    setIsUploading(true);
+    try {
+      // Simulate upload for now as backend might not be ready
+      // In a real scenario, we'd send this to /api/meetings/upload
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      
+      console.log('Uploading audio blob:', audioBlob);
+      
+      // Mocking the delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast.success('Recording uploaded successfully!');
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Upload failed', err);
+      toast.error('Failed to upload recording');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
-    <div className="container mx-auto py-20 px-4 max-w-2xl text-center">
-      <h1 className="text-3xl font-bold mb-4">Record Meeting</h1>
-      <p className="text-muted-foreground mb-12">
-        Click the button below to start recording. We'll capture the audio and generate a summary for you.
-      </p>
-
-      <div className="flex flex-col items-center justify-center space-y-8">
-        <div className={`relative flex items-center justify-center w-40 h-40 rounded-full border-4 ${isRecording ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50'}`}>
-          {isRecording ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-               <div className="w-32 h-32 rounded-full border-4 border-red-200 animate-ping opacity-20" />
-               <Square className="h-12 w-12 text-red-500 fill-red-500" />
+    <div className="container mx-auto py-10 px-4 max-w-2xl">
+      <Card className="border-2">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold">Live Recording</CardTitle>
+          <CardDescription>
+            Record your meeting or lecture. We'll generate a summary once you're done.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className={`text-5xl font-mono ${status === 'recording' ? 'text-red-500' : 'text-slate-600'}`}>
+              {formatDuration(duration)}
             </div>
-          ) : (
-            <Mic className="h-12 w-12 text-slate-400" />
-          )}
-        </div>
+            
+            <Visualizer stream={stream} isRecording={status === 'recording'} />
 
-        <div className="space-y-4 w-full max-w-xs">
-          {!isRecording ? (
-            <Button size="lg" className="w-full h-14 text-lg" onClick={() => setIsRecording(true)}>
-              Start Recording
-            </Button>
-          ) : (
-            <Button size="lg" variant="destructive" className="w-full h-14 text-lg" onClick={() => setIsRecording(false)}>
-              Stop Recording
-            </Button>
+            <div className="flex items-center space-x-4">
+              {status === 'idle' || status === 'stopped' ? (
+                <Button 
+                  size="lg" 
+                  className="rounded-full h-16 w-16 bg-primary hover:bg-primary/90 shadow-lg"
+                  onClick={startRecording}
+                >
+                  <Mic className="h-8 w-8" />
+                </Button>
+              ) : (
+                <>
+                  {status === 'recording' ? (
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="rounded-full h-16 w-16 border-2"
+                      onClick={pauseRecording}
+                    >
+                      <Pause className="h-8 w-8 text-slate-600" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="rounded-full h-16 w-16 border-2"
+                      onClick={resumeRecording}
+                    >
+                      <Play className="h-8 w-8 text-slate-600" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="destructive" 
+                    size="lg" 
+                    className="rounded-full h-16 w-16 shadow-lg"
+                    onClick={stopRecording}
+                  >
+                    <Square className="h-8 w-8" />
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            <div className="text-sm font-medium text-slate-500 capitalize">
+              {status === 'idle' ? 'Ready to record' : status.replace('stopped', 'Recording complete')}
+            </div>
+          </div>
+
+          {status === 'stopped' && audioUrl && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="text-sm font-medium">Preview Recording:</div>
+              <audio src={audioUrl} controls className="w-full h-10" />
+              
+              <div className="flex space-x-4 pt-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 space-x-2" 
+                  onClick={resetRecording}
+                  disabled={isUploading}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Discard</span>
+                </Button>
+                <Button 
+                  className="flex-1 space-x-2" 
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  <span>Upload & Process</span>
+                </Button>
+              </div>
+            </div>
           )}
-          <p className="text-sm text-muted-foreground">
-            {isRecording ? 'Recording in progress...' : 'Ready to record'}
+        </CardContent>
+        <CardFooter className="bg-slate-50 border-t flex justify-center py-4 rounded-b-xl">
+          <p className="text-xs text-slate-400">
+            Microphone access is required for recording. Audio is processed securely.
           </p>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
