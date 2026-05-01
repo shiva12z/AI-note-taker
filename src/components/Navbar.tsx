@@ -30,7 +30,7 @@ export default function Navbar() {
                   Record
                 </Button>
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </>
           ) : (
             <>
