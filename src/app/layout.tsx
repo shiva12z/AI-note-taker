@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +30,11 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
         <body className="min-h-full bg-slate-50 flex flex-col">
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Toaster />
+          <TooltipProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Toaster />
+          </TooltipProvider>
         </body>
       </html>
     </ClerkProvider>
