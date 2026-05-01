@@ -36,8 +36,12 @@ export default function DashboardPage() {
         if (Array.isArray(data)) {
           setMeetings(data);
         } else {
+          console.error('API returned non-array data:', data);
           setMeetings([]);
         }
+      } else {
+        console.error('Failed to fetch meetings:', response.statusText);
+        setMeetings([]);
       }
     } catch (error) {
       console.error('Failed to fetch meetings:', error);
