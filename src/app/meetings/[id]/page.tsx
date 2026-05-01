@@ -119,19 +119,36 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
         body: JSON.stringify({ meetingId: id }),
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
         toast.success(`Successfully exported to ${type === 'notion' ? 'Notion' : 'Google Docs'}`);
+        if (data.url) {
+          window.open(data.url, '_blank');
+        }
       } else {
-        // toast.error(`Failed to export to ${type === 'notion' ? 'Notion' : 'Google Docs'}`);
-        // Simulate success for demo purposes if backend not implemented
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        toast.success(`Successfully exported to ${type === 'notion' ? 'Notion' : 'Google Docs'} (Demo)`);
+        toast.error(data.error || `Failed to export to ${type === 'notion' ? 'Notion' : 'Google Docs'}`);
       }
     } catch (error) {
       toast.error('Export failed');
     } finally {
       setExporting(null);
     }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
+
+  const downloadTranscript = () => {
+    if (!meeting || !meeting.transcript) return;
+    const element = document.createElement("a");
+    const file = new Blob([meeting.transcript], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${meeting.title || 'transcript'}.txt`;
+    document.body.appendChild(element);
+    element.click();
   };
 
   const handleDelete = async () => {
@@ -205,8 +222,12 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
               {meeting.title || 'Untitled Meeting'}
             </h1>
-            <Badge className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1">
-              Completed
+            <Badge className={`${
+              meeting.status === 'COMPLETED' ? 'bg-emerald-500 hover:bg-emerald-600' : 
+              meeting.status === 'FAILED' ? 'bg-destructive hover:bg-destructive/90' :
+              'bg-blue-500 hover:bg-blue-600'
+            } px-3 py-1`}>
+              {meeting.status}
             </Badge>
           </div>
           <div className="flex flex-wrap items-center text-sm font-medium text-slate-500 gap-y-2">
@@ -328,10 +349,16 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
                 <CardTitle className="text-xl">Full Transcript</CardTitle>
                 <CardDescription>Complete speaker-by-speaker record</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                Download TXT
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => copyToClipboard(meeting.transcript || '', 'Transcript')}>
+                  <Share2 className="h-4 w-4" />
+                  Copy
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={downloadTranscript}>
+                  <Download className="h-4 w-4" />
+                  Download TXT
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 whitespace-pre-wrap text-slate-700 leading-loose h-[500px] overflow-y-auto font-mono text-[14px]">
