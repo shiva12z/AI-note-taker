@@ -163,6 +163,16 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
     return `${mins}m ${secs}s`;
   };
 
+  const toggleActionItem = (itemId: string) => {
+    if (!meeting) return;
+    const updatedItems = meeting.actionItems.map(item => 
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    setMeeting({ ...meeting, actionItems: updatedItems });
+    // In a real app, we'd also call an API here
+    toast.success('Task status updated');
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-10 px-4 max-w-5xl">
@@ -341,9 +351,9 @@ export default function MeetingDetailsPage({ params }: { params: Promise<{ id: s
               {meeting.actionItems.length > 0 ? (
                 <ul className="space-y-4">
                   {meeting.actionItems.map((item) => (
-                    <li key={item.id} className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-100 hover:border-primary/20 transition-colors">
+                    <li key={item.id} className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-100 hover:border-primary/20 transition-colors cursor-pointer" onClick={() => toggleActionItem(item.id)}>
                       <div className={`mt-1 h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${item.completed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
-                        {item.completed && <FileCheck className="h-3 w-3 text-white" />}
+                        {item.completed && <CheckCircle2 className="h-3 w-3 text-white" />}
                       </div>
                       <span className={`text-[15px] font-medium ${item.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                         {item.content}
